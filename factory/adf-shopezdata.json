@@ -1,0 +1,15 @@
+{
+	"name": "adf-shopezdata",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
+		}
+	},
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e691442d-1079-4583-a334-d4c39f1cd20f",
+		"tenantId": "f578744e-0a7e-466d-98fa-65b7fefd823f"
+	}
+}
