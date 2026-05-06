@@ -1,0 +1,68 @@
+{
+	"name": "DS_Blob_Products",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_Blobstorage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Blob Datasets"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "products.csv",
+				"folderPath": "products",
+				"container": "rawdata"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "ProductId",
+				"type": "String"
+			},
+			{
+				"name": "ProductName",
+				"type": "String"
+			},
+			{
+				"name": "Category",
+				"type": "String"
+			},
+			{
+				"name": "SubCategory",
+				"type": "String"
+			},
+			{
+				"name": "Brand",
+				"type": "String"
+			},
+			{
+				"name": "UnitPrice",
+				"type": "String"
+			},
+			{
+				"name": "CostPrice",
+				"type": "String"
+			},
+			{
+				"name": "StockQty",
+				"type": "String"
+			},
+			{
+				"name": "Supplier",
+				"type": "String"
+			},
+			{
+				"name": "IsActive",
+				"type": "String"
+			}
+		]
+	}
+}
