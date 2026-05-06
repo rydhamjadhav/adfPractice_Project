@@ -68,7 +68,6 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"preCopyScript": "Truncate table dimcustomer",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -235,7 +234,6 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"preCopyScript": "Truncate table products",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
