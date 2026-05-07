@@ -468,7 +468,8 @@
 				},
 				"parameters": {
 					"FileName": {
-						"type": "string"
+						"type": "string",
+						"defaultValue": "month=01/orders_jan2024.csv"
 					}
 				},
 				"folder": {
@@ -1049,6 +1050,100 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_OrdersCleansed')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Cleaned the orders via transformation",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Blob_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "AllOrder"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_factOrders",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CleanOrders"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          OrderId as string,",
+						"          CustomerId as string,",
+						"          ProductId as string,",
+						"          OrderDate as date 'yyyy-MM-dd',",
+						"          Quantity as string,",
+						"          UnitPrice as string,",
+						"          Discount as string,",
+						"          ShippingCost as string,",
+						"          PaymentMethod as string,",
+						"          OrderStatus as string,",
+						"          Region as string,",
+						"          month as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     wildcardPaths:['orders/month=*/orders_*.csv']) ~> AllOrder",
+						"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders",
+						"CleanOrders sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          OrderId as string,",
+						"          CustomerId as string,",
+						"          ProductId as string,",
+						"          CustomerName as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          OrderDate as date,",
+						"          OrderMonth as integer,",
+						"          OrderYear as integer,",
+						"          Quantity as integer,",
+						"          UnitPrice as decimal(10,2),",
+						"          DiscountPct as decimal(5,2),",
+						"          DiscountAmount as decimal(10,2),",
+						"          GrossRevenue as decimal(10,2),",
+						"          ShippingCost as decimal(10,2),",
+						"          NetRevenue as decimal(10,2),",
+						"          CostOfGoods as decimal(10,2),",
+						"          GrossProfit as decimal(10,2),",
+						"          PaymentMethod as string,",
+						"          OrderStatus as string,",
+						"          IsDelivered as boolean,",
+						"          Region as string,",
+						"          LoadedAt as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Orders')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_factOrders')]"
+			]
 		}
 	]
 }
