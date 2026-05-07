@@ -13,7 +13,15 @@
 					"name": "AllOrder"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_factOrders",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "CleanOrders"
@@ -38,7 +46,42 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     wildcardPaths:['orders/month=*/orders_*.csv']) ~> AllOrder",
-				"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders"
+				"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders",
+				"CleanOrders sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          OrderId as string,",
+				"          CustomerId as string,",
+				"          ProductId as string,",
+				"          CustomerName as string,",
+				"          ProductName as string,",
+				"          Category as string,",
+				"          OrderDate as date,",
+				"          OrderMonth as integer,",
+				"          OrderYear as integer,",
+				"          Quantity as integer,",
+				"          UnitPrice as decimal(10,2),",
+				"          DiscountPct as decimal(5,2),",
+				"          DiscountAmount as decimal(10,2),",
+				"          GrossRevenue as decimal(10,2),",
+				"          ShippingCost as decimal(10,2),",
+				"          NetRevenue as decimal(10,2),",
+				"          CostOfGoods as decimal(10,2),",
+				"          GrossProfit as decimal(10,2),",
+				"          PaymentMethod as string,",
+				"          OrderStatus as string,",
+				"          IsDelivered as boolean,",
+				"          Region as string,",
+				"          LoadedAt as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
 			]
 		}
 	}
