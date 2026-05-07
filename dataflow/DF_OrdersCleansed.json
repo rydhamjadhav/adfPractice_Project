@@ -1,0 +1,45 @@
+{
+	"name": "DF_OrdersCleansed",
+	"properties": {
+		"description": "Cleaned the orders via transformation",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Blob_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "AllOrder"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "CleanOrders"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          OrderId as string,",
+				"          CustomerId as string,",
+				"          ProductId as string,",
+				"          OrderDate as date 'yyyy-MM-dd',",
+				"          Quantity as string,",
+				"          UnitPrice as string,",
+				"          Discount as string,",
+				"          ShippingCost as string,",
+				"          PaymentMethod as string,",
+				"          OrderStatus as string,",
+				"          Region as string,",
+				"          month as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     wildcardPaths:['orders/month=*/orders_*.csv']) ~> AllOrder",
+				"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders"
+			]
+		}
+	}
+}

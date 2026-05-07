@@ -7,7 +7,8 @@
 		},
 		"parameters": {
 			"FileName": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "month=01/orders_jan2024.csv"
 			}
 		},
 		"folder": {
