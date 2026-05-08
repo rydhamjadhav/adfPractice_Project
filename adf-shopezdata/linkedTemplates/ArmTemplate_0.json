@@ -1074,12 +1074,18 @@
 								"referenceName": "DS_SQL_factOrders",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "LoadOrders"
 						}
 					],
 					"transformations": [
 						{
 							"name": "CleanOrders"
+						},
+						{
+							"name": "NewColumns"
+						},
+						{
+							"name": "FinalOrders"
 						}
 					],
 					"scriptLines": [
@@ -1088,10 +1094,10 @@
 						"          CustomerId as string,",
 						"          ProductId as string,",
 						"          OrderDate as date 'yyyy-MM-dd',",
-						"          Quantity as string,",
-						"          UnitPrice as string,",
-						"          Discount as string,",
-						"          ShippingCost as string,",
+						"          Quantity as integer,",
+						"          UnitPrice as integer,",
+						"          Discount as integer,",
+						"          ShippingCost as integer,",
 						"          PaymentMethod as string,",
 						"          OrderStatus as string,",
 						"          Region as string,",
@@ -1102,7 +1108,36 @@
 						"     ignoreNoFilesFound: false,",
 						"     wildcardPaths:['orders/month=*/orders_*.csv']) ~> AllOrder",
 						"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders",
-						"CleanOrders sink(allowSchemaDrift: true,",
+						"CleanOrders derive({Gross Revenue} = Quantity * UnitPrice,",
+						"          DiscountAmount = Quantity * UnitPrice *Discount,",
+						"          NetRevenue = Quantity *UnitPrice * (1 - Discount),",
+						"          TotalRevenue = (Quantity * UnitPrice * (1 - Discount)) + ShippingCost,",
+						"          IsDelivered = equals(OrderStatus,'Delivered'),",
+						"          OrderYear = year(OrderDate),",
+						"          OrderMonth = month(OrderDate)) ~> NewColumns",
+						"NewColumns select(mapColumn(",
+						"          OrderId,",
+						"          CustomerId,",
+						"          ProductId,",
+						"          OrderDate,",
+						"          Quantity,",
+						"          UnitPrice,",
+						"          Discount,",
+						"          ShippingCost,",
+						"          PaymentMethod,",
+						"          OrderStatus,",
+						"          Region,",
+						"          {Gross Revenue},",
+						"          DiscountAmount,",
+						"          NetRevenue,",
+						"          TotalRevenue,",
+						"          IsDelivered,",
+						"          OrderYear,",
+						"          OrderMonth",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> FinalOrders",
+						"FinalOrders sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          OrderId as string,",
@@ -1136,7 +1171,24 @@
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          OrderId,",
+						"          CustomerId,",
+						"          ProductId,",
+						"          OrderDate,",
+						"          OrderMonth,",
+						"          OrderYear,",
+						"          Quantity,",
+						"          UnitPrice,",
+						"          DiscountAmount,",
+						"          ShippingCost,",
+						"          NetRevenue,",
+						"          PaymentMethod,",
+						"          OrderStatus,",
+						"          IsDelivered,",
+						"          Region",
+						"     )) ~> LoadOrders"
 					]
 				}
 			},
