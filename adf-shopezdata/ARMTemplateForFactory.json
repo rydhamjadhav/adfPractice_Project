@@ -385,6 +385,224 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_LoadOrders')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LoadOrders",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:30:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_OrdersCleansed",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"AllOrder": {
+										"FileName": "month=01/orders_jan2024.csv"
+									},
+									"LoadOrders": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "CopyReturns",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "LoadOrders",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:30:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"ReturnId"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "ReturnId",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "ReturnId",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OrderId",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrderId",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CustomerId",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "CustomerId",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ProductId",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "ProductId",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ReturnDate",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "ReturnDate",
+											"type": "Date",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "ReturnReason",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "ReturnReason",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ReturnStatus",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "ReturnStatus",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RefundAmount",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "RefundAmount",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Returns",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL_factReturns",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_OrdersCleansed')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Returns')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_factReturns')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/DS_Blob_Customers')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1050,6 +1268,172 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_EnrichOrders')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Enrich the Orders data",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_factOrders",
+								"type": "DatasetReference"
+							},
+							"name": "factOrders"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Blob_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "Customer"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Blob_Products",
+								"type": "DatasetReference"
+							},
+							"name": "Product"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_factOrders",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "OrderWithCustomer"
+						},
+						{
+							"name": "WithProductName"
+						},
+						{
+							"name": "WithProfit"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          OrderId as string,",
+						"          CustomerId as string,",
+						"          ProductId as string,",
+						"          CustomerName as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          OrderDate as date,",
+						"          OrderMonth as integer,",
+						"          OrderYear as integer,",
+						"          Quantity as integer,",
+						"          UnitPrice as decimal(10,2),",
+						"          DiscountPct as decimal(5,2),",
+						"          DiscountAmount as decimal(10,2),",
+						"          GrossRevenue as decimal(10,2),",
+						"          ShippingCost as decimal(10,2),",
+						"          NetRevenue as decimal(10,2),",
+						"          CostOfGoods as decimal(10,2),",
+						"          GrossProfit as decimal(10,2),",
+						"          PaymentMethod as string,",
+						"          OrderStatus as string,",
+						"          IsDelivered as boolean,",
+						"          Region as string,",
+						"          LoadedAt as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> factOrders",
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          Phone as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Country as string,",
+						"          CustomerSegment as string,",
+						"          JoinDate as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> Customer",
+						"source(output(",
+						"          ProductId as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          SubCategory as string,",
+						"          Brand as string,",
+						"          UnitPrice as integer,",
+						"          CostPrice as integer,",
+						"          StockQty as integer,",
+						"          Supplier as string,",
+						"          IsActive as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> Product",
+						"factOrders, Customer join(factOrders@CustomerId == Customer@CustomerId,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> OrderWithCustomer",
+						"OrderWithCustomer, Product join(factOrders@ProductId == Product@ProductId,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> WithProductName",
+						"WithProductName derive(CostofGoods = Quantity * CostPrice) ~> WithProfit",
+						"WithProfit sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          OrderId as string,",
+						"          CustomerId as string,",
+						"          ProductId as string,",
+						"          CustomerName as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          OrderDate as date,",
+						"          OrderMonth as integer,",
+						"          OrderYear as integer,",
+						"          Quantity as integer,",
+						"          UnitPrice as decimal(10,2),",
+						"          DiscountPct as decimal(5,2),",
+						"          DiscountAmount as decimal(10,2),",
+						"          GrossRevenue as decimal(10,2),",
+						"          ShippingCost as decimal(10,2),",
+						"          NetRevenue as decimal(10,2),",
+						"          CostOfGoods as decimal(10,2),",
+						"          GrossProfit as decimal(10,2),",
+						"          PaymentMethod as string,",
+						"          OrderStatus as string,",
+						"          IsDelivered as boolean,",
+						"          Region as string,",
+						"          LoadedAt as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_factOrders')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Customers')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Products')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/DF_OrdersCleansed')]",
