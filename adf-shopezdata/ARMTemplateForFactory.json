@@ -33,6 +33,141 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/PL_MasterPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LoadDimension",
+						"description": "This pipeline is for loading the dimension",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_CopyDimension",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Load_CleansedOrders",
+						"description": "for loading the orders(fact table)",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "LoadDimension",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_LoadOrders",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "LoadEnrichData",
+						"description": "to insert the pending blank data itno sql",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Load_CleansedOrders",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:30:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_EnrichOrders",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"factOrders": {},
+									"Customer": {},
+									"Product": {},
+									"LoadEnrichOrders": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "NotifyWhenSuccess",
+						"description": "notif of success ",
+						"type": "WebHook",
+						"dependsOn": [
+							{
+								"activity": "LoadEnrichData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://webhook.site/91b1077f-1c27-4f41-96c2-69b21eff3bed",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n    \"pipeline\": \"@{pipeline().Pipeline}\",\n    \"status\": \"Success\",\n    \"runId\" : \"@{pipeline().RunId}\",\n    \"completedAt\" : \"@{utcnow()}\",\n    \"message\" : \"ShopEasy ADF pipeline completed successfully\"\n    }",
+								"type": "Expression"
+							},
+							"timeout": "00:10:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"Master": {
+						"type": "string",
+						"defaultValue": "Full"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_CopyDimension')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_LoadOrders')]",
+				"[concat(variables('factoryId'), '/dataflows/DF_EnrichOrders')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_CopyDimension')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1306,7 +1441,7 @@
 								"referenceName": "DS_SQL_factOrders",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "LoadEnrichOrders"
 						}
 					],
 					"transformations": [
@@ -1318,6 +1453,9 @@
 						},
 						{
 							"name": "WithProfit"
+						},
+						{
+							"name": "select1"
 						}
 					],
 					"scriptLines": [
@@ -1390,8 +1528,59 @@
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> WithProductName",
-						"WithProductName derive(CostofGoods = Quantity * CostPrice) ~> WithProfit",
-						"WithProfit sink(allowSchemaDrift: true,",
+						"WithProductName derive(CostofGoods = Quantity * CostPrice,",
+						"          GrossProfit = NetRevenue - (Quantity * CostPrice),",
+						"          ProfitMarginPct = (NetRevenue - Quantity * CostPrice)/100) ~> WithProfit",
+						"WithProfit select(mapColumn(",
+						"          OrderId,",
+						"          CustomerId = factOrders@CustomerId,",
+						"          ProductId = factOrders@ProductId,",
+						"          CustomerName,",
+						"          ProductName = factOrders@ProductName,",
+						"          Category = factOrders@Category,",
+						"          OrderDate,",
+						"          OrderMonth,",
+						"          OrderYear,",
+						"          Quantity,",
+						"          UnitPrice = factOrders@UnitPrice,",
+						"          DiscountPct,",
+						"          DiscountAmount,",
+						"          GrossRevenue,",
+						"          ShippingCost,",
+						"          NetRevenue,",
+						"          CostOfGoods = factOrders@CostOfGoods,",
+						"          GrossProfit,",
+						"          PaymentMethod,",
+						"          OrderStatus,",
+						"          IsDelivered,",
+						"          Region,",
+						"          LoadedAt,",
+						"          CustomerId = Customer@CustomerId,",
+						"          FirstName,",
+						"          LastName,",
+						"          Email,",
+						"          Phone,",
+						"          City,",
+						"          State,",
+						"          Country,",
+						"          CustomerSegment,",
+						"          JoinDate,",
+						"          ProductId = Product@ProductId,",
+						"          ProductName = Product@ProductName,",
+						"          Category = Product@Category,",
+						"          SubCategory,",
+						"          Brand,",
+						"          UnitPrice = Product@UnitPrice,",
+						"          CostPrice,",
+						"          StockQty,",
+						"          Supplier,",
+						"          IsActive,",
+						"          CostofGoods = WithProfit@CostofGoods,",
+						"          ProfitMarginPct",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          OrderId as string,",
@@ -1422,10 +1611,35 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:false,",
+						"     truncate:true,",
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          OrderId,",
+						"          CustomerId,",
+						"          ProductId,",
+						"          CustomerName,",
+						"          ProductName,",
+						"          Category,",
+						"          OrderDate,",
+						"          OrderMonth,",
+						"          OrderYear,",
+						"          Quantity,",
+						"          UnitPrice,",
+						"          DiscountPct,",
+						"          DiscountAmount,",
+						"          GrossRevenue,",
+						"          ShippingCost,",
+						"          NetRevenue,",
+						"          CostOfGoods = select1@CostOfGoods,",
+						"          GrossProfit,",
+						"          PaymentMethod,",
+						"          OrderStatus,",
+						"          IsDelivered,",
+						"          Region",
+						"     )) ~> LoadEnrichOrders"
 					]
 				}
 			},
@@ -1552,7 +1766,9 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:false,",
+						"     truncate:true,",
 						"     format: 'table',",
+						"     preSQLs:['Truncate table fact_Orders;'],",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
