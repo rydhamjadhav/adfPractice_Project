@@ -49,7 +49,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "pl_CopyDimension",
+								"referenceName": "pl_LoadDimension",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -74,7 +74,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "pl_LoadOrders",
+								"referenceName": "pl_TransformOrders",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -120,34 +120,6 @@
 							},
 							"traceLevel": "Fine"
 						}
-					},
-					{
-						"name": "NotifyWhenSuccess",
-						"description": "notif of success ",
-						"type": "WebHook",
-						"dependsOn": [
-							{
-								"activity": "LoadEnrichData",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"url": "https://webhook.site/91b1077f-1c27-4f41-96c2-69b21eff3bed",
-							"method": "POST",
-							"headers": {},
-							"body": {
-								"value": "{\n    \"pipeline\": \"@{pipeline().Pipeline}\",\n    \"status\": \"Success\",\n    \"runId\" : \"@{pipeline().RunId}\",\n    \"completedAt\" : \"@{utcnow()}\",\n    \"message\" : \"ShopEasy ADF pipeline completed successfully\"\n    }",
-								"type": "Expression"
-							},
-							"timeout": "00:10:00"
-						}
 					}
 				],
 				"policy": {
@@ -162,186 +134,24 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_CopyDimension')]",
-				"[concat(variables('factoryId'), '/pipelines/pl_LoadOrders')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_LoadDimension')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_TransformOrders')]",
 				"[concat(variables('factoryId'), '/dataflows/DF_EnrichOrders')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_CopyDimension')]",
+			"name": "[concat(parameters('factoryName'), '/pl_LoadDimension')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"description": "dimension tables are loaded into SQl",
 				"activities": [
 					{
-						"name": "Copy_Customers",
-						"description": "copy customer data",
-						"type": "Copy",
-						"state": "Active",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.00:30:00",
-							"retry": 2,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": true,
-									"keys": [
-										"CustomerId"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "CustomerId",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "CustomerId",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "FirstName",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "FullName",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Email",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Email",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "City",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "City",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "State",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "State",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Country",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Country",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CustomerSegment",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "CustomerSegment",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "JoinDate",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "JoinDate",
-											"type": "Date",
-											"physicalType": "date"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_Blob_Customers",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_SQL_dimCustomer",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
 						"name": "Copy_Products",
 						"type": "Copy",
 						"dependsOn": [
 							{
-								"activity": "Copy_Customers",
+								"activity": "LoadCustomer",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -369,6 +179,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
+								"preCopyScript": "Truncate table dim_Products",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -505,6 +316,36 @@
 								"parameters": {}
 							}
 						]
+					},
+					{
+						"name": "LoadCustomer",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:30:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Load_Customers",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"RawCustomers": {},
+									"SinkCustomers": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
 					}
 				],
 				"policy": {
@@ -513,14 +354,13 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Blob_Customers')]",
-				"[concat(variables('factoryId'), '/datasets/DS_SQL_dimCustomer')]",
 				"[concat(variables('factoryId'), '/datasets/DS_Blob_Products')]",
-				"[concat(variables('factoryId'), '/datasets/DS_SQL_dimProducts')]"
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_dimProducts')]",
+				"[concat(variables('factoryId'), '/dataflows/DF_Load_Customers')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_LoadOrders')]",
+			"name": "[concat(parameters('factoryName'), '/pl_TransformOrders')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -590,6 +430,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE fact_Returns",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -1611,7 +1452,6 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:false,",
-						"     truncate:true,",
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
@@ -1647,6 +1487,98 @@
 				"[concat(variables('factoryId'), '/datasets/DS_SQL_factOrders')]",
 				"[concat(variables('factoryId'), '/datasets/DS_Blob_Customers')]",
 				"[concat(variables('factoryId'), '/datasets/DS_Blob_Products')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_Load_Customers')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Blob_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "RawCustomers"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_dimCustomer",
+								"type": "DatasetReference"
+							},
+							"name": "SinkCustomers"
+						}
+					],
+					"transformations": [
+						{
+							"name": "WithFullName"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerId as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          Phone as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Country as string,",
+						"          CustomerSegment as string,",
+						"          JoinDate as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> RawCustomers",
+						"RawCustomers derive(FullName = concat(trim(FirstName), ' ',trim(LastName))) ~> WithFullName",
+						"WithFullName select(mapColumn(",
+						"          CustomerId,",
+						"          Email,",
+						"          City,",
+						"          State,",
+						"          Country,",
+						"          CustomerSegment,",
+						"          JoinDate,",
+						"          FullName",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          CustomerId as string,",
+						"          FullName as string,",
+						"          Email as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Country as string,",
+						"          CustomerSegment as string,",
+						"          JoinDate as date,",
+						"          LoadedAt as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     preSQLs:['Truncate table dim_Customers'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> SinkCustomers"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Customers')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_dimCustomer')]"
 			]
 		},
 		{
@@ -1692,10 +1624,10 @@
 						"          CustomerId as string,",
 						"          ProductId as string,",
 						"          OrderDate as date 'yyyy-MM-dd',",
-						"          Quantity as integer,",
+						"          Quantity as short,",
 						"          UnitPrice as integer,",
-						"          Discount as integer,",
-						"          ShippingCost as integer,",
+						"          Discount as double,",
+						"          ShippingCost as short,",
 						"          PaymentMethod as string,",
 						"          OrderStatus as string,",
 						"          Region as string,",
@@ -1720,7 +1652,7 @@
 						"          OrderDate,",
 						"          Quantity,",
 						"          UnitPrice,",
-						"          Discount,",
+						"          DiscountPct = Discount,",
 						"          ShippingCost,",
 						"          PaymentMethod,",
 						"          OrderStatus,",
@@ -1728,7 +1660,6 @@
 						"          {Gross Revenue},",
 						"          DiscountAmount,",
 						"          NetRevenue,",
-						"          TotalRevenue,",
 						"          IsDelivered,",
 						"          OrderYear,",
 						"          OrderMonth",
@@ -1768,27 +1699,10 @@
 						"     upsertable:false,",
 						"     truncate:true,",
 						"     format: 'table',",
-						"     preSQLs:['Truncate table fact_Orders;'],",
+						"     preSQLs:['Truncate table fact_Orders'],",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          OrderId,",
-						"          CustomerId,",
-						"          ProductId,",
-						"          OrderDate,",
-						"          OrderMonth,",
-						"          OrderYear,",
-						"          Quantity,",
-						"          UnitPrice,",
-						"          DiscountAmount,",
-						"          ShippingCost,",
-						"          NetRevenue,",
-						"          PaymentMethod,",
-						"          OrderStatus,",
-						"          IsDelivered,",
-						"          Region",
-						"     )) ~> LoadOrders"
+						"     errorHandlingOption: 'stopOnFirstError') ~> LoadOrders"
 					]
 				}
 			},
