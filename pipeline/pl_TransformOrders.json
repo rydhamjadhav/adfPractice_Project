@@ -1,5 +1,5 @@
 {
-	"name": "pl_LoadOrders",
+	"name": "pl_TransformOrders",
 	"properties": {
 		"activities": [
 			{
@@ -64,6 +64,7 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE fact_Returns",
 						"writeBehavior": "upsert",
 						"upsertSettings": {
 							"useTempDB": true,

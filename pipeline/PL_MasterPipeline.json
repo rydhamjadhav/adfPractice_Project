@@ -13,7 +13,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "pl_CopyDimension",
+						"referenceName": "pl_LoadDimension",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
@@ -37,7 +37,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "pl_LoadOrders",
+						"referenceName": "pl_TransformOrders",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
@@ -73,33 +73,6 @@
 						"computeType": "General"
 					},
 					"traceLevel": "Fine"
-				}
-			},
-			{
-				"name": "NotifyWhenSuccess",
-				"description": "notif of success ",
-				"type": "WebHook",
-				"dependsOn": [
-					{
-						"activity": "LoadEnrichData",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"url": "https://webhook.site/91b1077f-1c27-4f41-96c2-69b21eff3bed",
-					"method": "POST",
-					"body": {
-						"value": "{\n    \"pipeline\": \"@{pipeline().Pipeline}\",\n    \"status\": \"Success\",\n    \"runId\" : \"@{pipeline().RunId}\",\n    \"completedAt\" : \"@{utcnow()}\",\n    \"message\" : \"ShopEasy ADF pipeline completed successfully\"\n    }",
-						"type": "Expression"
-					},
-					"timeout": "00:10:00"
 				}
 			}
 		],

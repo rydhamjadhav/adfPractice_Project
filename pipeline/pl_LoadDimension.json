@@ -1,174 +1,14 @@
 {
-	"name": "pl_CopyDimension",
+	"name": "pl_LoadDimension",
 	"properties": {
 		"description": "dimension tables are loaded into SQl",
 		"activities": [
-			{
-				"name": "Copy_Customers",
-				"description": "copy customer data",
-				"type": "Copy",
-				"state": "Active",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.00:30:00",
-					"retry": 2,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobStorageReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "upsert",
-						"upsertSettings": {
-							"useTempDB": true,
-							"keys": [
-								"CustomerId"
-							]
-						},
-						"sqlWriterUseTableLock": false,
-						"disableMetricsCollection": false
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "CustomerId",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "CustomerId",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "FirstName",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "FullName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Email",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Email",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "City",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "City",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "State",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "State",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Country",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Country",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "CustomerSegment",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "CustomerSegment",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "JoinDate",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "JoinDate",
-									"type": "Date",
-									"physicalType": "date"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "DS_Blob_Customers",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "DS_SQL_dimCustomer",
-						"type": "DatasetReference"
-					}
-				]
-			},
 			{
 				"name": "Copy_Products",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Copy_Customers",
+						"activity": "LoadCustomer",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -196,6 +36,7 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate table dim_Products",
 						"writeBehavior": "upsert",
 						"upsertSettings": {
 							"useTempDB": true,
@@ -330,6 +171,30 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "LoadCustomer",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:30:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_Load_Customers",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"annotations": []
