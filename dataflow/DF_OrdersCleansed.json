@@ -1,0 +1,124 @@
+{
+	"name": "DF_OrdersCleansed",
+	"properties": {
+		"description": "Cleaned the orders via transformation",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Blob_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "AllOrder"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_factOrders",
+						"type": "DatasetReference"
+					},
+					"name": "LoadOrders"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CleanOrders"
+				},
+				{
+					"name": "NewColumns"
+				},
+				{
+					"name": "FinalOrders"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          OrderId as string,",
+				"          CustomerId as string,",
+				"          ProductId as string,",
+				"          OrderDate as date 'yyyy-MM-dd',",
+				"          Quantity as short,",
+				"          UnitPrice as integer,",
+				"          Discount as double,",
+				"          ShippingCost as short,",
+				"          PaymentMethod as string,",
+				"          OrderStatus as string,",
+				"          Region as string,",
+				"          month as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     wildcardPaths:['orders/month=*/orders_*.csv']) ~> AllOrder",
+				"AllOrder filter((!isNull(OrderId) && length(trim(OrderId))>0)) ~> CleanOrders",
+				"CleanOrders derive({Gross Revenue} = Quantity * UnitPrice,",
+				"          DiscountAmount = Quantity * UnitPrice *Discount,",
+				"          NetRevenue = Quantity *UnitPrice * (1 - Discount),",
+				"          TotalRevenue = (Quantity * UnitPrice * (1 - Discount)) + ShippingCost,",
+				"          IsDelivered = equals(OrderStatus,'Delivered'),",
+				"          OrderYear = year(OrderDate),",
+				"          OrderMonth = month(OrderDate)) ~> NewColumns",
+				"NewColumns select(mapColumn(",
+				"          OrderId,",
+				"          CustomerId,",
+				"          ProductId,",
+				"          OrderDate,",
+				"          Quantity,",
+				"          UnitPrice,",
+				"          DiscountPct = Discount,",
+				"          ShippingCost,",
+				"          PaymentMethod,",
+				"          OrderStatus,",
+				"          Region,",
+				"          {Gross Revenue},",
+				"          DiscountAmount,",
+				"          NetRevenue,",
+				"          IsDelivered,",
+				"          OrderYear,",
+				"          OrderMonth",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> FinalOrders",
+				"FinalOrders sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          OrderId as string,",
+				"          CustomerId as string,",
+				"          ProductId as string,",
+				"          CustomerName as string,",
+				"          ProductName as string,",
+				"          Category as string,",
+				"          OrderDate as date,",
+				"          OrderMonth as integer,",
+				"          OrderYear as integer,",
+				"          Quantity as integer,",
+				"          UnitPrice as decimal(10,2),",
+				"          DiscountPct as decimal(5,2),",
+				"          DiscountAmount as decimal(10,2),",
+				"          GrossRevenue as decimal(10,2),",
+				"          ShippingCost as decimal(10,2),",
+				"          NetRevenue as decimal(10,2),",
+				"          CostOfGoods as decimal(10,2),",
+				"          GrossProfit as decimal(10,2),",
+				"          PaymentMethod as string,",
+				"          OrderStatus as string,",
+				"          IsDelivered as boolean,",
+				"          Region as string,",
+				"          LoadedAt as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     truncate:true,",
+				"     format: 'table',",
+				"     preSQLs:['Truncate table fact_Orders'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> LoadOrders"
+			]
+		}
+	}
+}

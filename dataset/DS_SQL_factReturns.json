@@ -1,0 +1,59 @@
+{
+	"name": "DS_SQL_factReturns",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_SQLDatabase",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL Datasets"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ReturnId",
+				"type": "varchar"
+			},
+			{
+				"name": "OrderId",
+				"type": "varchar"
+			},
+			{
+				"name": "CustomerId",
+				"type": "varchar"
+			},
+			{
+				"name": "ProductId",
+				"type": "varchar"
+			},
+			{
+				"name": "ReturnDate",
+				"type": "date"
+			},
+			{
+				"name": "ReturnReason",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ReturnStatus",
+				"type": "nvarchar"
+			},
+			{
+				"name": "RefundAmount",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "LoadedAt",
+				"type": "datetime2",
+				"scale": 7
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "fact_Returns"
+		}
+	}
+}
